@@ -1,7 +1,7 @@
 # This file contains modules common to various models
 
 from utils.utils import *
-
+JIT = True
 
 def autopad(k, p=None):  # kernel, padding
     # Pad to 'same'
@@ -89,8 +89,19 @@ class Focus(nn.Module):
         self.conv = Conv(c1 * 4, c2, k, s, p, g, act)
 
     def forward(self, x):  # x(b,c,w,h) -> y(b,4c,w/2,h/2)
-        return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
-
+        # print(x.size())
+        ############# change by jiangrong for rknn convert ##############
+        # return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
+        slice_size = int(x.size()[2]//2)
+        return self.conv(torch.cat([x[..., :slice_size, :slice_size]
+                                    , x[..., :slice_size, :slice_size]
+                                    , x[..., :slice_size, :slice_size]
+                                    , x[..., :slice_size, :slice_size]]
+                                    # , x[..., :slice_size, slice_size:]
+                                    # , x[..., slice_size:, :slice_size]
+                                    # , x[..., slice_size:, slice_size:]]
+                                    , 1))
+        ############ end changing ########################
 
 class Concat(nn.Module):
     # Concatenate a list of tensors along dimension

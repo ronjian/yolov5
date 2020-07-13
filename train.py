@@ -43,7 +43,7 @@ hyp = {'optimizer': 'SGD',  # ['adam', 'SGD', None] if none, default is SGD
 
 
 def train(hyp):
-    print(f'Hyperparameters {hyp}')
+    print('Hyperparameters {}'.format(hyp))
     log_dir = tb_writer.log_dir if tb_writer else 'runs/evolution'  # run directory
     wdir = str(Path(log_dir) / 'weights') + os.sep  # weights directory
 
@@ -383,7 +383,7 @@ if __name__ == '__main__':
 
     last = get_latest_run() if opt.resume == 'get_last' else opt.resume  # resume from most recent run
     if last and not opt.weights:
-        print(f'Resuming training from {last}')
+        print('Resuming training from {}'.format(last))
     opt.weights = last if opt.resume and not opt.weights else opt.weights
     opt.cfg = check_file(opt.cfg)  # check file
     opt.data = check_file(opt.data)  # check file

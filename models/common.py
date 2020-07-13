@@ -93,8 +93,13 @@ class Focus(nn.Module):
         ############# change by jiangrong for rknn convert ##############
         # return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
         slice_size = int(x.size()[2]//2)
+        # try slice by channel: test passed!!!
+        # x = torch.cat([x[:,0:1,...]
+        #                 , x[:,0:1,...]
+        #                 , x[:,0:1,...]]
+        #             , 1)
         return self.conv(torch.cat([x[..., :slice_size, :slice_size]
-                                    , x[..., :slice_size, :slice_size]
+                                    , x[..., :slice_size:, :slice_size]
                                     , x[..., :slice_size, :slice_size]
                                     , x[..., :slice_size, :slice_size]]
                                     # , x[..., :slice_size, slice_size:]

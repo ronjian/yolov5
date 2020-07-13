@@ -67,7 +67,19 @@ class Model(nn.Module):
         m = self.model[-1]  # Detect()
         if isinstance(m, Detect):
             s = 128  # 2x min stride
-            m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
+            if JIT:
+                m.stride = torch.tensor([32., 16.,  8.])
+            else:
+                ######### for multiple input, jiangrong ##############
+                m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
+                # m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s)
+                #                                                                 ,torch.zeros(1, ch, s, s)
+                #                                                                 ,torch.zeros(1, ch, s, s)
+                #                                                                 ,torch.zeros(1, ch, s, s))
+                #                                                                 ])  # forward
+                ######### end #################
+            print('m.stride', m.stride)
+
             m.anchors /= m.stride.view(-1, 1, 1)
             check_anchor_order(m)
             self.stride = m.stride
@@ -80,7 +92,13 @@ class Model(nn.Module):
         torch_utils.model_info(self)
         print('')
 
+    ####### for multiple input, jiangrong #########
     def forward(self, x, augment=False, profile=False):
+    # def forward(self, x, x2, x3, x4, augment=False, profile=False):
+    #     x = x + x2
+    #     x = x + x3
+    #     x = x + x4
+    ####### end #######################
         # print(x.size())
         if augment:
             img_size = x.shape[-2:]  # height, width
@@ -103,6 +121,8 @@ class Model(nn.Module):
     def forward_once(self, x, profile=False):
         y, dt = [], []  # outputs
         for m in self.model:
+            m_name = str(type(m))
+
             if m.f != -1:  # if not from previous layer
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
 
@@ -118,7 +138,11 @@ class Model(nn.Module):
                 dt.append((torch_utils.time_synchronized() - t) * 100)
                 print('%10.1f%10.0f%10.1fms %-40s' % (o, m.np, dt[-1], m.type))
 
+            if m_name.find('ConvTranspose2d') > -1:
+                print('before', x.size())
             x = m(x)  # run
+            if m_name.find('ConvTranspose2d') > -1:
+                print('after', x.size())
             # if not isinstance(x, tuple):
             #     print(x.size())
             y.append(x if m.i in self.save else None)  # save output
@@ -206,7 +230,7 @@ def parse_model(md, ch):  # model_dict, input_channels(3)
             f = f or list(reversed([(-1 if j == i else j - 1) for j, x in enumerate(ch) if x == no]))
         else:
             c2 = ch[f]
-
+        # print(n, args)
         m_ = nn.Sequential(*[m(*args) for _ in range(n)]) if n > 1 else m(*args)  # module
         t = str(m)[8:-2].replace('__main__.', '')  # module type
         np = sum([x.numel() for x in m_.parameters()])  # number params

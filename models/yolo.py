@@ -23,7 +23,8 @@ class Detect(nn.Module):
         for i in range(self.nl):
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             ########### comment by jiangrong, this line cause rknn converting failed ##########
-            # x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            if not JIT:
+                x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
             ########### end comment ####################
 
             if not JIT:
@@ -138,13 +139,13 @@ class Model(nn.Module):
                 dt.append((torch_utils.time_synchronized() - t) * 100)
                 print('%10.1f%10.0f%10.1fms %-40s' % (o, m.np, dt[-1], m.type))
 
-            if m_name.find('ConvTranspose2d') > -1:
-                print('before', x.size())
+            # if m_name.find('ConvTranspose2d') > -1:
+            #     print('before', x.size())
             x = m(x)  # run
-            if m_name.find('ConvTranspose2d') > -1:
-                print('after', x.size())
-            # if not isinstance(x, tuple):
-            #     print(x.size())
+            # if m_name.find('ConvTranspose2d') > -1:
+            #     print('after', x.size())
+            if not isinstance(x, tuple):
+                print(x.size())
             y.append(x if m.i in self.save else None)  # save output
 
         if profile:

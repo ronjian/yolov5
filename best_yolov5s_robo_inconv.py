@@ -9,6 +9,7 @@ ckpt['model'] = {k: v for k, v in ckpt['model'].float().state_dict().items()
                     if model.state_dict()[k].shape == v.shape}  # to FP32, filter
 model.load_state_dict(ckpt['model'], strict=False)
 model.eval()
+model(torch.Tensor(1,3,640,640))
 
 ########## for multiple input, jiangrong ############
 # trace_model = torch.jit.trace(model, (torch.Tensor(1,3,640,640)

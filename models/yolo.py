@@ -15,32 +15,52 @@ class Detect(nn.Module):
         self.register_buffer('anchors', a)  # shape(nl,na,2)
         self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
         self.export = False  # onnx export
+        # Detect init params:  [[28, 31, 53, 73, 91, 39], [94, 219, 120, 86, 173, 337], [214, 99, 287, 176, 376, 365]]
+        # 29 34 3 3 torch.Size([3, 3, 2]) torch.Size([3, 1, 3, 1, 1, 2])
+        print('Detect init params: ',anchors, self.nc, self.no, self.nl, self.na, a.size(), a.clone().view(self.nl, 1, -1, 1, 1, 2).size())
 
     def forward(self, x):
+        if JIT:
+            return tuple([each.sigmoid() for each in x])
         # x = x.copy()  # for profiling
         z = []  # inference output
         self.training |= self.export
         for i in range(self.nl):
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            ########### comment by jiangrong, this line cause rknn converting failed ##########
-            if not JIT:
-                x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-            ########### end comment ####################
+            bs, _, ny, nx = x[i].shape  # x(bs,102,20,20) to x(bs,3,20,20,35)
+            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
-            if not JIT:
-                if not self.training:  # inference
-                    if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                        self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+            if not self.training:  # inference
+                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
+                    self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
 
-                    y = x[i].sigmoid()
-                    y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
-                    y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
-                    z.append(y.view(bs, -1, self.no))
-        
-        if JIT:
-            return tuple([each for each in x])
+                y = x[i].sigmoid()
+                y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
+                y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+                z.append(y.view(bs, -1, self.no))
 
         return x if self.training else (torch.cat(z, 1), x)
+
+    # def forward(self, x):
+    #     # x = x.copy()  # for profiling
+    #     z = []  # inference output
+    #     self.training |= self.export
+    #     for i in range(self.nl):
+    #         bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+    #         ########### comment by jiangrong, this line cause rknn converting failed ##########
+    #         if JIT:
+    #             return tuple([each for each in x])
+    #         else:
+    #             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+    #             if not self.training:  # inference
+    #                 if self.grid[i].shape[2:4] != x[i].shape[2:4]:
+    #                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+
+    #                 y = x[i].sigmoid()
+    #                 y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
+    #                 y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+    #                 z.append(y.view(bs, -1, self.no))
+    #             return x if self.training else (torch.cat(z, 1), x)
+    #         ########### end comment ####################
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
@@ -117,7 +137,9 @@ class Model(nn.Module):
             y[2][..., :4] /= s[1]  # scale
             return torch.cat(y, 1), None  # augmented inference, train
         else:
-            return self.forward_once(x, profile)  # single-scale inference, train
+            print(x.size())
+            x = self.forward_once(x, profile) # single-scale inference, train
+            return  x 
 
     def forward_once(self, x, profile=False):
         y, dt = [], []  # outputs
@@ -142,10 +164,14 @@ class Model(nn.Module):
             # if m_name.find('ConvTranspose2d') > -1:
             #     print('before', x.size())
             x = m(x)  # run
+            print("module name is: ", type(m))
+            if isinstance(x, torch.Tensor):
+                print(x.size())
+            elif isinstance(x, tuple):
+                print(len(x), x[0].size(), x[1].size(), x[2].size())
             # if m_name.find('ConvTranspose2d') > -1:
             #     print('after', x.size())
-            if not isinstance(x, tuple):
-                print(x.size())
+
             y.append(x if m.i in self.save else None)  # save output
 
         if profile:

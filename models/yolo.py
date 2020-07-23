@@ -26,7 +26,11 @@ class Detect(nn.Module):
         z = []  # inference output
         self.training |= self.export
         for i in range(self.nl):
-            bs, _, ny, nx = x[i].shape  # x(bs,102,20,20) to x(bs,3,20,20,35)
+            bs, _, ny, nx = x[i].shape  # x(bs,102,20,20) to x(bs,3,20,20,34)
+            # print(ny, nx)
+            # 64 84 * 8-> 512, 672
+            # 32 42 * 16-> 512, 672
+            # 16 21 * 32-> 512, 672
             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
             if not self.training:  # inference
@@ -88,17 +92,10 @@ class Model(nn.Module):
         m = self.model[-1]  # Detect()
         if isinstance(m, Detect):
             s = 128  # 2x min stride
-            if JIT:
-                m.stride = torch.tensor([32., 16.,  8.])
-            else:
-                ######### for multiple input, jiangrong ##############
-                m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
-                # m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s)
-                #                                                                 ,torch.zeros(1, ch, s, s)
-                #                                                                 ,torch.zeros(1, ch, s, s)
-                #                                                                 ,torch.zeros(1, ch, s, s))
-                #                                                                 ])  # forward
-                ######### end #################
+            ######### modified by jiangrong ##############
+            m.stride = torch.tensor([32., 16.,  8.])
+            # m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
+            ######### end #################
             print('m.stride', m.stride)
 
             m.anchors /= m.stride.view(-1, 1, 1)
@@ -137,7 +134,7 @@ class Model(nn.Module):
             y[2][..., :4] /= s[1]  # scale
             return torch.cat(y, 1), None  # augmented inference, train
         else:
-            print(x.size())
+            # print(x.size())
             x = self.forward_once(x, profile) # single-scale inference, train
             return  x 
 
@@ -164,11 +161,11 @@ class Model(nn.Module):
             # if m_name.find('ConvTranspose2d') > -1:
             #     print('before', x.size())
             x = m(x)  # run
-            print("module name is: ", type(m))
-            if isinstance(x, torch.Tensor):
-                print(x.size())
-            elif isinstance(x, tuple):
-                print(len(x), x[0].size(), x[1].size(), x[2].size())
+            # print("module name is: ", type(m))
+            # if isinstance(x, torch.Tensor):
+            #     print(x.size())
+            # elif isinstance(x, tuple):
+            #     print(len(x), x[0].size(), x[1].size(), x[2].size())
             # if m_name.find('ConvTranspose2d') > -1:
             #     print('after', x.size())
 

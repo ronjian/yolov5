@@ -4,6 +4,12 @@ import json
 from models.experimental import *
 from utils.datasets import *
 
+classnames = ["__background__", "wire", "pet feces", "shoe", "bar stool a", "fan", "power strip", "dock(ruby)",
+                 "dock(rubys+tanosv)", "bar stool b", "scale", "clothing item", "cleaning robot",
+                 "fan b", "door mark a", "door mark b", "wheel", "door mark c", "flat base", "whole fan",
+                 "whole fan b", "whole bar stool a", "whole bar stool b", "fake poop a", "fake poop b", "dust pan",
+                 "folding chair", "laundry basket", "handheld cleaner", "sock"]
+classnames = [each.replace(' ', '-') for each in classnames]
 
 def test(data,
          weights=None,
@@ -58,6 +64,7 @@ def test(data,
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = data['test'] if opt.task == 'test' else data['val']  # path to val/test images
+        print('!!!!imgsz', imgsz)
         dataloader = create_dataloader(path, imgsz, batch_size, model.stride.max(), opt,
                                        hyp=None, augment=False, cache=False, pad=0.5, rect=True)[0]
 
@@ -69,11 +76,13 @@ def test(data,
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
     for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
+        np.save("./assets/output_torch/input.npy", img / 255.0)
         img = img.to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         targets = targets.to(device)
         nb, _, height, width = img.shape  # batch size, channels, height, width
+        print(height, width) # 512 672
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
         # Disable gradients
@@ -81,6 +90,9 @@ def test(data,
             # Run model
             t = torch_utils.time_synchronized()
             inf_out, train_out = model(img, augment=augment)  # inference and training outputs
+            for CSUM, eachtgt in enumerate(train_out, 1):
+                eachtgt = eachtgt.sigmoid()
+                np.save("./assets/output_torch/{}.npy".format(CSUM), eachtgt.detach().numpy())
             t0 += torch_utils.time_synchronized() - t
 
             # Compute loss
@@ -114,16 +126,19 @@ def test(data,
             # Append to pycocotools JSON dictionary
             if save_json:
                 # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
+                txtname = paths[si].split('/')[-1].replace('jpeg', 'txt')
                 image_id = int(Path(paths[si]).stem.split('_')[-1])
                 box = pred[:, :4].clone()  # xyxy
                 scale_coords(img[si].shape[1:], box, shapes[si][0], shapes[si][1])  # to original shape
                 box = xyxy2xywh(box)  # xywh
                 box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
-                for p, b in zip(pred.tolist(), box.tolist()):
-                    jdict.append({'image_id': image_id,
-                                  'category_id': coco91class[int(p[5])],
-                                  'bbox': [round(x, 3) for x in b],
-                                  'score': round(p[4], 5)})
+                with open('./assets/pytorch-txt/' + txtname, 'w') as wf:
+                    for p, b in zip(pred.tolist(), box.tolist()):
+                        jdict.append({'image_id': image_id,
+                                    'category_id': coco91class[int(p[5])],
+                                    'bbox': [round(x, 3) for x in b],
+                                    'score': round(p[4], 5)})
+                        wf.write("{} {} {} {} {} {}\n".format(names[int(p[5])].replace(' ', '-'), round(p[4], 5), int(b[0]), int(b[1]), int(b[0]+b[2]), int(b[1]+b[3])))
 
             # Assign all predictions as incorrect
             correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=device)
@@ -224,8 +239,8 @@ def test(data,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path(s)')
-    parser.add_argument('--data', type=str, default='data/coco128.yaml', help='*.data path')
+    parser.add_argument('--weights', nargs='+', type=str, default='./weights/best_yolov5s_robo_inconv.pt', help='model.pt path(s)')
+    parser.add_argument('--data', type=str, default='data/baiguang.yaml', help='*.data path')
     parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
@@ -239,7 +254,9 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='store_true', help='report mAP by class')
     opt = parser.parse_args()
     opt.save_json = opt.save_json or opt.data.endswith('coco.yaml')
+    opt.save_json = True
     opt.data = check_file(opt.data)  # check file
+    opt.verbose = True
     print(opt)
 
     # task = 'val', 'test', 'study'
@@ -262,7 +279,7 @@ if __name__ == '__main__':
             y = []  # y axis
             for i in x:  # img-size
                 print('\nRunning %s point %s...' % (f, i))
-                r, _, t = test(opt.data, weights, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json)
+                r, _, t = test(opt.data, weights, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json, save_dir='./save-dir/')
                 y.append(r + t)  # results and times
             np.savetxt(f, y, fmt='%10.4g')  # save
         os.system('zip -r study.zip study_*.txt')

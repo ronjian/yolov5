@@ -215,6 +215,12 @@ def parse_model(md, ch):  # model_dict, input_channels(3)
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     for i, (f, n, m, args) in enumerate(md['backbone'] + md['head']):  # from, number, module, args
         m = eval(m) if isinstance(m, str) else m  # eval strings
+        ####### add by jiangrong ###########
+        if m is nn.Upsample:
+            if args[0].startswith('tuple'):
+                args[0] = args[0].replace('tuple', '')
+                args[0] = tuple([int(each) for each in args[0].split(',')])
+        ######## end adding ################
         for j, a in enumerate(args):
             try:
                 args[j] = eval(a) if isinstance(a, str) else a  # eval strings

@@ -105,14 +105,20 @@ def parse_det(an, an_h, an_w, an_s, an_wh):
 
 if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # model = Model("./models/yolov5s.inconv.yaml", nc=29).to(device)
-    # ckpt = torch.load("./weights/best_yolov5s_robo_inconv.pt", map_location=device)  # load checkpoint
 
-    # ckpt['model'] = {k: v for k, v in ckpt['model'].float().state_dict().items()
-    #                     if model.state_dict()[k].shape == v.shape}  # to FP32, filter
-    # model.load_state_dict(ckpt['model'], strict=False)
-    model = attempt_load("./weights/best_yolov5s_robo_inconv.pt", map_location=device)  # load FP32 model
+    model = Model("./models/yolov5s.inconv.yaml", nc=29).to(device)
+    ckpt = torch.load("./weights/best_yolov5s_robo_inconv.pt", map_location=device)  # load checkpoint
+    ckpt['model'] = {k: v for k, v in ckpt['model'].float().state_dict().items()
+                        if model.state_dict()[k].shape == v.shape}  # to FP32, filter
+    model.load_state_dict(ckpt['model'], strict=True)
     model.eval()
+    
+
+    # model = torch.load("./weights/best_yolov5s_robo_inconv.pt", map_location=device)['model'].float()
+    # model.eval()
+
+    _ = model(torch.Tensor(1,3,input_h, input_w))
+
     val_dir = '/workspace/centernet/data/baiguang/images/val/'
     for imname in  os.listdir(val_dir):
         # if imname.endswith('.jpeg') and imname == "StereoVision_L_1466362_46_0_1_1401_D_FakePoop_1492_1890.jpeg":

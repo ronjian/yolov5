@@ -476,14 +476,14 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             # Load image
             img, (h0, w0), (h, w) = load_image(self, index)
 
-            print('!!!1', img.shape)
+            # print('!!!1', img.shape)
 
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
-            print('self.rect', self.rect, 'shape', shape)
+            # print('self.rect', self.rect, 'shape', shape)
             img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment)
             shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
-            print('!!!2', img.shape)
+            # print('!!!2', img.shape)
             # Load labels
             labels = []
             x = self.labels[index]
@@ -697,7 +697,7 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
         img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    print('top, bottom, left, right', top, bottom, left, right)
+    # print('top, bottom, left, right', top, bottom, left, right)
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
     return img, ratio, (dw, dh)
 

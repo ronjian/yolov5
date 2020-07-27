@@ -64,7 +64,7 @@ def test(data,
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = data['test'] if opt.task == 'test' else data['val']  # path to val/test images
-        print('!!!!imgsz', imgsz)
+        # print('!!!!imgsz', imgsz)
         dataloader = create_dataloader(path, imgsz, batch_size, model.stride.max(), opt,
                                        hyp=None, augment=False, cache=False, pad=0.5, rect=True)[0]
 
@@ -82,7 +82,7 @@ def test(data,
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         targets = targets.to(device)
         nb, _, height, width = img.shape  # batch size, channels, height, width
-        print(height, width) # 512 672
+        # print(height, width) # 512 672
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
         # Disable gradients

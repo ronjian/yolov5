@@ -70,6 +70,9 @@ def addAnnoItem(object_name, image_id, category_id, bbox):
     annotation_item['id'] = annotation_id
     coco['annotations'].append(annotation_item)
 
+def clip(val):
+    return max(min(1.0, val), 0.0)
+
 def parseXmlFiles(xml_path, text_dir): 
     for f in os.listdir(xml_path):
         if not f.endswith('.xml'):
@@ -173,7 +176,7 @@ def parseXmlFiles(xml_path, text_dir):
                     c_x , c_y = (bndbox['xmin'] + bndbox['xmax']) / 2. / 1280., (bndbox['ymin'] + bndbox['ymax']) / 2. / 960.
                     c_w , c_h = (bndbox['xmax'] - bndbox['xmin']) / 1280., (bndbox['ymax'] - bndbox['ymin']) / 960.
                     text_lines += '{} {} {} {} {}\n'.format(category_set[object_name],
-                                                c_x , c_y, c_w , c_h)
+                                                clip(c_x) , clip(c_y), clip(c_w) , clip(c_h))
         with open(os.path.join(text_dir, text_name), 'w') as wf:
             wf.write(text_lines)
 
@@ -218,38 +221,38 @@ if __name__ == '__main__':
             , "handheld cleaner":27
             , "sock":28
         }
-    elif dataname == 'ir':
-        category_set = {
-            'wire':1
-            ,'pet feces':2
-            ,'shoe':3
-            ,'bar stool a':4
-            ,'fan':5
-            ,'power strip':6
-            ,'dock(ruby)_ir':7
-            ,'dock(rubys+tanosv)_ir':8
-            ,'bar stool b':9
-            ,'scale':10
-            ,'clothing item':11
-            ,'cleaning robot':12
-            ,'fan b':13
-            ,'door mark a':14
-            ,'door mark b':15
-            ,'wheel':16
-            ,'door mark c':17
-            ,'flat base':18
-            ,'whole fan':19
-            ,'whole fan b':20
-            ,'whole bar stool a':21
-            ,'whole bar stool b':22
-            ,'fake poop a':23
-            ,'dust pan':24
-            ,'folding chair':25
-            ,'laundry basket':26
-            ,'handheld cleaner':27
-            ,'sock':28
-            ,'fake poop b':29
-        }
+    # elif dataname == 'ir':
+    #     category_set = {
+    #         'wire':1
+    #         ,'pet feces':2
+    #         ,'shoe':3
+    #         ,'bar stool a':4
+    #         ,'fan':5
+    #         ,'power strip':6
+    #         ,'dock(ruby)_ir':7
+    #         ,'dock(rubys+tanosv)_ir':8
+    #         ,'bar stool b':9
+    #         ,'scale':10
+    #         ,'clothing item':11
+    #         ,'cleaning robot':12
+    #         ,'fan b':13
+    #         ,'door mark a':14
+    #         ,'door mark b':15
+    #         ,'wheel':16
+    #         ,'door mark c':17
+    #         ,'flat base':18
+    #         ,'whole fan':19
+    #         ,'whole fan b':20
+    #         ,'whole bar stool a':21
+    #         ,'whole bar stool b':22
+    #         ,'fake poop a':23
+    #         ,'dust pan':24
+    #         ,'folding chair':25
+    #         ,'laundry basket':26
+    #         ,'handheld cleaner':27
+    #         ,'sock':28
+    #         ,'fake poop b':29
+    #     }
 
     if dataname == 'baiguang' and split == 'train':
         xml_path = '/workspace/downloads/rockrobo_data/det_trainset/VOC2007/Annotations'
@@ -261,16 +264,16 @@ if __name__ == '__main__':
         # json_file = '/workspace/downloads/rockrobo_data/det_testset/neice_final/VOC2007/instances.json'
         txt_dir = '/workspace/yolov5/baiguang/labels/val/'
         SKIP_DIFFICULT = True
-    elif dataname == 'ir' and split == 'val':
-        xml_path = '/workspace/downloads/rockrobo_data/det_testset/shtest_ir/VOC2007/Annotations'
-        json_file = '/workspace/downloads/rockrobo_data/det_testset/shtest_ir/VOC2007/instances.json'
-        txt_dir = '/workspace/downloads/rockrobo_data/det_testset/shtest_ir/VOC2007/ann-text'
-        SKIP_DIFFICULT = True
-    elif dataname == 'ir' and split == 'train':
-        xml_path = '/workspace/downloads/rockrobo_data/rio_ir/VOC2007/Annotations'
-        json_file = '/workspace/downloads/rockrobo_data/rio_ir/VOC2007/instances.json'
-        txt_dir = '/workspace/downloads/rockrobo_data/rio_ir/VOC2007/ann-text'
-        SKIP_DIFFICULT = False
+    # elif dataname == 'ir' and split == 'val':
+    #     xml_path = '/workspace/downloads/rockrobo_data/det_testset/shtest_ir/VOC2007/Annotations'
+    #     json_file = '/workspace/downloads/rockrobo_data/det_testset/shtest_ir/VOC2007/instances.json'
+    #     txt_dir = '/workspace/downloads/rockrobo_data/det_testset/shtest_ir/VOC2007/ann-text'
+    #     SKIP_DIFFICULT = True
+    # elif dataname == 'ir' and split == 'train':
+    #     xml_path = '/workspace/downloads/rockrobo_data/rio_ir/VOC2007/Annotations'
+    #     json_file = '/workspace/downloads/rockrobo_data/rio_ir/VOC2007/instances.json'
+    #     txt_dir = '/workspace/downloads/rockrobo_data/rio_ir/VOC2007/ann-text'
+    #     SKIP_DIFFICULT = False
     else:
         raise Exception('error path choice')
 

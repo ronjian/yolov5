@@ -92,7 +92,7 @@ def test(data,
             inf_out, train_out = model(img, augment=augment)  # inference and training outputs
             for CSUM, eachtgt in enumerate(train_out, 1):
                 eachtgt = eachtgt.sigmoid()
-                np.save("./assets/output_torch/{}.npy".format(CSUM), eachtgt.detach().numpy())
+                np.save("./assets/output_torch/{}.npy".format(CSUM), eachtgt.detach().cpu().numpy())
             t0 += torch_utils.time_synchronized() - t
 
             # Compute loss
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     parser.add_argument('--iou-thres', type=float, default=0.65, help='IOU threshold for NMS')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
     parser.add_argument('--task', default='val', help="'val', 'test', 'study'")
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--single-cls', action='store_true', help='treat as single-class dataset')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--merge', action='store_true', help='use Merge NMS')

@@ -17,7 +17,7 @@ import torch
 # model.load_state_dict(ckpt['model'], strict=True)
 # model.eval()
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 model = Model("./models/yolov5s.inconv.yaml", nc=29).to(device)
 ckpt = torch.load("./weights/best_yolov5s_robo_inconv.pt", map_location=device)  # load checkpoint
 ckpt['model'] = {k: v for k, v in ckpt['model'].float().state_dict().items()
@@ -56,4 +56,4 @@ model(torch.Tensor(1,3,512,672))
 #                                 )
 # trace_model.save('./weights/yolov5s_jit_multiple_input.pt')
 trace_model = torch.jit.trace(model, (torch.Tensor(1,3,512,672), ))
-trace_model.save('./weights/best_yolov5s_robo_inconv_jit_v2.pt')
+# trace_model.save('./weights/best_yolov5s_robo_inconv_jit_v2.pt')

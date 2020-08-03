@@ -22,6 +22,8 @@ from tqdm import tqdm
 
 from . import torch_utils  #  torch_utils, google_utils
 
+COLLECT_NMS_DATA = True
+
 # Set printoptions
 torch.set_printoptions(linewidth=320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
@@ -546,13 +548,15 @@ def build_targets(p, targets, model):
 
     return tcls, tbox, indices, anch
 
-
+NMS_CNT = 0
 def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, classes=None, agnostic=False):
     """Performs Non-Maximum Suppression (NMS) on inference results
 
     Returns:
          detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
     """
+    if COLLECT_NMS_DATA:
+        conf_thres=0.1
     if prediction.dtype is torch.float16:
         prediction = prediction.float()  # to FP32
 
@@ -611,7 +615,36 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
         c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
         boxes, scores = x[:, :4] + c, x[:, 4]  # boxes (offset by class), scores
         ########### modified by jiangrong, keep all candidates ##########
-        i = torchvision.ops.boxes.nms(boxes, scores, iou_thres)
+        if COLLECT_NMS_DATA:
+            nms_test_data_dir = "/workspace/yolov5/nms-test-data/"
+            iou_thres = 0.5
+            global NMS_CNT
+            NMS_CNT += 1
+            score_list = []
+            with open(nms_test_data_dir + "pred_boxes_{}.dat".format(NMS_CNT), 'w') as wf1:
+                with open(nms_test_data_dir + "pred_scores_{}.dat".format(NMS_CNT), 'w') as wf2:
+                    selidx = 0
+                    sellist = []
+                    for score, box in zip(scores, boxes):
+                        score = round(float(score), 12)
+                        if score not in score_list:
+                            wf1.write("{},{},{},{}\n".format(round(float(box[0]),3)
+                                                            , round(float(box[1]),3)
+                                                            , round(float(box[2]),3)
+                                                            , round(float(box[3]),3)))
+                            wf2.write("{}\n".format(score))
+                            score_list.append(score)
+                            sellist.append(selidx)
+                        selidx += 1
+
+            i = torchvision.ops.boxes.nms(boxes[sellist], scores[sellist], iou_thres)
+
+            with open(nms_test_data_dir + "selected_{}.dat".format(NMS_CNT), 'w') as wf:
+                for sel in i:
+                    wf.write("{}\n".format(int(sel)))
+        else:
+            i = torchvision.ops.boxes.nms(boxes, scores, iou_thres)
+
         if i.shape[0] > max_det:  # limit detections
             i = i[:max_det]
         # i = torch.tensor(np.array([i for i in range(boxes.size()[0])]))

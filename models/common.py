@@ -1,7 +1,7 @@
 # This file contains modules common to various models
 
 from utils.utils import *
-JIT = True
+JIT = False
 
 def autopad(k, p=None):  # kernel, padding
     # Pad to 'same'

@@ -104,7 +104,7 @@ def parse_det(an, an_h, an_w, an_s, an_wh):
     return res   
 
 if __name__ == "__main__":
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
 
     model = Model("./models/yolov5s.inconv.yaml", nc=29).to(device)
     ckpt = torch.load("./weights/best_yolov5s_robo_inconv.pt", map_location=device)  # load checkpoint

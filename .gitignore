@@ -247,3 +247,5 @@ fabric.properties
 
 assets/*
 baiguang/*
+
+nms-test-data/*

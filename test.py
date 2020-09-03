@@ -1,6 +1,8 @@
 import argparse
 import json
 
+import os; os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 from models.experimental import *
 from utils.datasets import *
 

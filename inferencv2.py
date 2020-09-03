@@ -1,3 +1,4 @@
+import os; os.environ['CUDA_VISIBLE_DEVICES'] = ''
 from models.yolo import Model
 from utils.utils import *
 import cv2
@@ -5,6 +6,7 @@ import numpy as np
 import torchvision
 import argparse
 import json
+import torch
 
 from models.experimental import *
 from utils.datasets import *

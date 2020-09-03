@@ -2,6 +2,7 @@ from models.yolo import Model
 import cv2 
 import numpy as np
 import torch
+import os; os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 # model = Model("./models/yolov5s.inconv.yaml", nc=29).to("cpu")
 # ckpt = torch.load("./weights/best_yolov5s_robo_inconv.pt", map_location="cpu")  # load checkpoint
@@ -56,4 +57,4 @@ model(torch.Tensor(1,3,512,672))
 #                                 )
 # trace_model.save('./weights/yolov5s_jit_multiple_input.pt')
 trace_model = torch.jit.trace(model, (torch.Tensor(1,3,512,672), ))
-trace_model.save('./weights/best_yolov5s_robo_inconv_jit_v2.pt')
+trace_model.save('./weights/best_yolov5s_robo_inconv_jit_relu.pt')
